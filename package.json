@@ -1,0 +1,20 @@
+{
+  "name": "audio-sampler-server",
+  "version": "1.0.0",
+  "description": "Serveur REST pour l'Audio Sampler Web",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "build": "echo 'Build complete - No compilation needed for Node.js server'",
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["audio", "sampler", "web-audio", "rest-api"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  }
+}
+
