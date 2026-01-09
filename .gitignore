@@ -1,8 +1,6 @@
 # Node modules
 node_modules/
 
-# Fichiers audio (peuvent être volumineux)
-presets/
 
 # Logs
 *.log
