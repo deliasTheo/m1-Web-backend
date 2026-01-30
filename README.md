@@ -1,140 +1,89 @@
-# Serveur REST pour Audio Sampler Web
+# m1-web-backend
 
-Ce serveur Node.js/Express sert les presets et les fichiers audio pour l'application Audio Sampler Web.
+Serveur REST Node.js/Express pour l’Audio Sampler Web. Sert les métadonnées des presets et des sons depuis MongoDB et les fichiers audio depuis le dossier `presets/`.
+
+## Prérequis
+
+- Node.js 14+
+- MongoDB (URI configurable via la variable d’environnement `MONGO_URI`)
 
 ## Installation
 
-1. Installer les dépendances :
 ```bash
-cd server
 npm install
-```
-
-## Structure des fichiers audio
-
-Créez un dossier `presets` dans le répertoire `server` avec la structure suivante :
-
-```
-server/
-├── server.js
-├── package.json
-└── presets/
-    ├── 808/
-    │   ├── Kick 808X.wav
-    │   ├── Snare 808 1.wav
-    │   ├── Snare 808 2.wav
-    │   ├── Clap 808.wav
-    │   ├── Hihat 808 Closed.wav
-    │   ├── Hihat 808 Open.wav
-    │   ├── Tom 808 High.wav
-    │   ├── Tom 808 Mid.wav
-    │   ├── Tom 808 Low.wav
-    │   ├── Cymbal 808.wav
-    │   ├── Cowbell 808.wav
-    │   └── Rimshot 808.wav
-    ├── 909/
-    │   ├── Kick 909.wav
-    │   ├── Snare 909.wav
-    │   ├── Clap 909.wav
-    │   ├── Hihat 909 Closed.wav
-    │   ├── Hihat 909 Open.wav
-    │   ├── Crash 909.wav
-    │   ├── Ride 909.wav
-    │   └── Tom 909 High.wav
-    └── acoustic/
-        ├── Kick Acoustic.wav
-        ├── Snare Acoustic.wav
-        ├── Hihat Closed.wav
-        ├── Hihat Open.wav
-        ├── Tom 1.wav
-        ├── Tom 2.wav
-        ├── Crash.wav
-        └── Ride.wav
 ```
 
 ## Démarrage
 
-Démarrer le serveur :
 ```bash
 npm start
 ```
 
 Ou en mode développement :
+
 ```bash
 npm run dev
 ```
 
-Le serveur démarre sur `http://localhost:3000`
+Le serveur écoute sur **http://localhost:3000** (port configurable dans `server.js`).
 
-## Endpoints de l'API
+## Structure des fichiers audio
 
-### GET /api/presets
-Retourne la liste de tous les presets disponibles.
+Les fichiers audio sont servis depuis le dossier `presets/` à la racine du projet. Les métadonnées (noms des presets, noms des sons, URLs) sont stockées dans MongoDB ; les URLs pointent vers des chemins sous `/presets/` (ex. `/presets/808/Kick 808X.wav`).
 
-**Réponse :**
-```json
-[
-  {
-    "name": "808",
-    "type": "Drumkit",
-    "isFactoryPresets": true,
-    "samples": [
-      { "url": "./808/Kick 808X.wav", "name": "Kick" },
-      { "url": "./808/Snare 808 1.wav", "name": "Snare 1" }
-    ]
-  }
-]
+Exemple de structure :
+
+```
+m1-web-backend/
+├── server.js
+├── package.json
+└── presets/
+    ├── 808/
+    │   ├── Kick 808X.wav
+    │   └── ...
+    └── ...
 ```
 
-### GET /api/presets/:name
-Retourne un preset spécifique par son nom.
+## API
 
-**Exemple :** `/api/presets/808`
+### Presets
 
-### GET /presets/*
-Sert les fichiers audio statiques.
+| Méthode | Route | Description |
+|--------|--------|-------------|
+| GET | `/api/presets` | Liste de tous les presets (avec leurs sons) |
+| GET | `/api/presets/:name` | Un preset par nom |
+| POST | `/api/preset/addPreset` | Créer un preset (body : `name`, `type`, optionnel `isFactoryPreset`) |
+| PUT | `/api/preset/:presetName/modifyName` | Renommer un preset (body : `newName`) |
+| DELETE | `/api/preset/:presetName` | Supprimer un preset et tous ses sons |
 
-**Exemple :** `/presets/808/Kick%20808X.wav`
+### Sons
+
+| Méthode | Route | Description |
+|--------|--------|-------------|
+| PUT | `/api/sound/:soundName/modifyName` | Renommer un son (body : `newName`, `presetName`) |
+| DELETE | `/api/sound/:soundName` | Supprimer un son (body : `presetName`) |
+
+**Note :** Il n’existe pas d’endpoint pour ajouter un son à un preset côté backend (addSound non implémenté).
+
+### Fichiers audio
+
+- **GET** `/presets/*` : servir les fichiers audio (ex. `/presets/808/Kick%20808X.wav`).
 
 ## Configuration
 
-Pour ajouter de nouveaux presets, modifiez le tableau `presets` dans `server.js` :
+- **MONGO_URI** : URI de connexion MongoDB (par défaut une valeur de démo dans le code ; en production, utiliser une variable d’environnement).
+- **Port** : 3000 par défaut dans `server.js`.
 
-```javascript
-const presets = [
-    {
-        name: 'Mon Preset',
-        type: 'Drumkit',
-        isFactoryPresets: false,
-        samples: [
-            { url: './mon-preset/fichier1.wav', name: 'Sample 1' },
-            { url: './mon-preset/fichier2.wav', name: 'Sample 2' }
-        ]
-    }
-];
-```
+## Fonctionnalités implémentées
 
-## Notes
+- Connexion MongoDB (collections `preset` et `sound`)
+- Liste et récupération des presets avec leurs sons
+- Création de presets (sans sons côté API)
+- Renommage de presets et de sons
+- Suppression de presets et de sons
+- Service des fichiers audio statiques depuis `presets/`
+- CORS activé pour les appels cross-origin
 
-- Le serveur utilise CORS pour permettre les requêtes cross-origin
-- Les fichiers audio doivent être au format WAV (recommandé) ou tout format supporté par Web Audio API
-- Les noms de fichiers avec espaces sont encodés automatiquement par l'application cliente
-- Le serveur supporte le caching et l'ETag pour optimiser les performances
+## Ce qui n’est pas fait
 
-## Dépannage
-
-### Le serveur ne démarre pas
-- Vérifiez que Node.js est installé (version 14+)
-- Vérifiez que le port 3000 n'est pas déjà utilisé
-- Installez les dépendances : `npm install`
-
-### Les fichiers audio ne se chargent pas
-- Vérifiez que le dossier `presets` existe
-- Vérifiez que les fichiers audio sont bien nommés et placés dans les bons dossiers
-- Vérifiez les logs du serveur pour voir les requêtes
-- Vérifiez la console du navigateur pour voir les erreurs
-
-### Erreurs CORS
-- Le serveur active CORS par défaut
-- Si vous changez le port ou l'URL, vérifiez la configuration CORS dans `server.js`
-
+- **addSound** : aucun endpoint pour ajouter un son à un preset (création des entrées « son » en base et/ou upload de fichier).
