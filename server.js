@@ -318,6 +318,81 @@ app.put('/api/sound/:soundName/modifyName', async (req, res, next) => {
 });
 
 /**
+ * Route API : Supprimer un son
+ * DELETE /api/sound/:soundName
+ * Body: { presetName: string }
+ */
+app.delete('/api/sound/:soundName', async (req, res, next) => {
+    try {
+        const soundName = req.params.soundName;
+        const { presetName } = req.body;
+
+        if (!presetName) {
+            return res.status(400).json({
+                error: 'Le champ "presetName" est requis dans le body pour identifier le son'
+            });
+        }
+
+        const preset = await presetsCollection.findOne({ name: presetName });
+        if (!preset) {
+            return res.status(404).json({
+                error: `Preset "${presetName}" non trouvé`
+            });
+        }
+
+        const sound = await soundsCollection.findOne({
+            name: soundName,
+            presetId: preset._id
+        });
+        if (!sound) {
+            return res.status(404).json({
+                error: `Son "${soundName}" non trouvé dans le preset "${presetName}"`
+            });
+        }
+
+        await soundsCollection.deleteOne({ _id: sound._id });
+        console.log(`✅ Son "${soundName}" supprimé du preset "${preset.name}"`);
+        res.json({
+            message: `Son "${soundName}" supprimé`,
+            presetName: preset.name
+        });
+    } catch (error) {
+        console.error('Erreur lors de la suppression du son:', error);
+        next(error);
+    }
+});
+
+/**
+ * Route API : Supprimer un preset (et tous ses sons)
+ * DELETE /api/preset/:presetName
+ */
+app.delete('/api/preset/:presetName', async (req, res, next) => {
+    try {
+        const presetName = req.params.presetName;
+
+        const preset = await presetsCollection.findOne({ name: presetName });
+        if (!preset) {
+            return res.status(404).json({
+                error: `Preset "${presetName}" non trouvé`
+            });
+        }
+
+        // Supprimer tous les sons du preset
+        const deleteSoundsResult = await soundsCollection.deleteMany({ presetId: preset._id });
+        await presetsCollection.deleteOne({ _id: preset._id });
+
+        console.log(`✅ Preset "${presetName}" supprimé (${deleteSoundsResult.deletedCount} son(s) supprimé(s))`);
+        res.json({
+            message: `Preset "${presetName}" supprimé`,
+            soundsDeleted: deleteSoundsResult.deletedCount
+        });
+    } catch (error) {
+        console.error('Erreur lors de la suppression du preset:', error);
+        next(error);
+    }
+});
+
+/**
  * Route pour servir les fichiers audio statiques
  * Les fichiers doivent être dans le dossier ./presets/
  */
